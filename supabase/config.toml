@@ -1,0 +1,16 @@
+# Supabase Configuration File
+# Generated for MotoRent Dumaguete OTP Email Verification
+
+project_id = "hceylmoutuzldbywawtm"
+
+[api]
+enabled = true
+
+[auth]
+enabled = true
+
+[functions.send-otp-email]
+verify_jwt = false
+
+[functions.delete-user-account]
+verify_jwt = true
