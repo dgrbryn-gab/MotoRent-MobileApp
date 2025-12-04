@@ -1,425 +1,251 @@
-# Supabase Edge Function Email Setup Guide
+# Supabase Email Verification Setup Guide
 
-Complete guide to setting up email sending for OTP verification using Supabase Edge Functions.
-
----
-
-## 📋 Prerequisites
-
-1. Supabase project created
-2. Supabase CLI installed
-3. Email service account (Resend recommended)
+Complete guide to setting up email verification for user authentication using Supabase's native email system.
 
 ---
 
-## 🚀 Step-by-Step Setup
+## 📋 Overview
 
-### Step 1: Install Supabase CLI
+This app uses **Supabase Auth's built-in email verification** system. No external email service (like Resend) is required.
 
-```powershell
-# Using npm
-npm install -g supabase
+**How it works:**
+1. User signs up with email and password
+2. Supabase Auth automatically sends a confirmation email
+3. User clicks the verification link
+4. Email is confirmed and user can log in
 
-# Or using Scoop (Windows)
-scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-scoop install supabase
+---
+
+## ⚙️ Setup Steps
+
+### Step 1: Configure Supabase Auth
+
+Go to your **Supabase Dashboard** → **Authentication** → **Providers** → **Email**
+
+Ensure the following settings:
+
+```
+✅ Enable Email Auth: ON
+✅ Confirm Email: REQUIRED
+✅ Double Confirm Changes: OFF (optional)
 ```
 
-Verify installation:
-```powershell
-supabase --version
+### Step 2: Set Redirect URLs
+
+Navigate to **Authentication** → **URL Configuration**
+
+Add your app's redirect URLs for email confirmations:
+
+**For Mobile (Android/iOS):**
+```
+io.supabase.motorentdumaguete://auth/callback
 ```
 
-### Step 2: Login to Supabase
-
-```powershell
-supabase login
+**For Web:**
+```
+http://localhost:3000/auth/callback
+https://yourdomain.com/auth/callback
 ```
 
-This will open a browser window to authenticate. Follow the prompts and paste the access token back into your terminal.
+### Step 3: Customize Email Template (Optional)
 
-### Step 3: Link Your Project
+Go to **Authentication** → **Email Templates**
 
-```powershell
-# Navigate to your Flutter project directory
-cd "c:\Users\ACER\Desktop\Flutter"
+You can customize:
+- Email subject
+- Email body content
+- Sender name and email
 
-# Link to your Supabase project
-supabase link --project-ref your-project-ref
-```
+Default template is pre-configured and ready to use.
 
-To get your project ref:
-- Go to Supabase Dashboard
-- Click on your project
-- Go to Settings > General
-- Copy the "Reference ID"
+### Step 4: Verify Configuration
 
-### Step 4: Choose Email Service
+Test the email verification flow:
 
-#### Option A: Resend (Recommended - Easy Setup)
+1. Launch the app:
+   ```bash
+   flutter run
+   ```
 
-**Why Resend?**
-- ✅ Simple API
-- ✅ 100 emails/day free tier
-- ✅ 3,000 emails/month on free plan
-- ✅ Great deliverability
-- ✅ No credit card required for free tier
+2. Sign up with a test email address
 
-**Sign up:**
-1. Go to https://resend.com
-2. Sign up for free account
-3. Verify your email
-4. Add your domain (or use their test domain for development)
+3. Check your email inbox (or spam folder) for the verification email
 
-**Get API Key:**
-1. Go to https://resend.com/api-keys
-2. Click "Create API Key"
-3. Name it: "MotoRent OTP"
-4. Copy the API key (starts with `re_`)
+4. Click the verification link
 
-#### Option B: SendGrid
+5. You should be redirected to the app and logged in
 
-1. Sign up at https://sendgrid.com
-2. Get API key from Settings > API Keys
-3. Update the Edge Function to use SendGrid API
+---
 
-```typescript
-// Replace Resend code with SendGrid:
-const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${SENDGRID_API_KEY}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    personalizations: [{
-      to: [{ email }]
-    }],
-    from: { email: 'noreply@yourdomain.com' },
-    subject: 'Verify Your Email - MotoRent Dumaguete',
-    content: [{
-      type: 'text/html',
-      value: htmlContent
-    }]
-  })
-})
-```
+## 🧪 Testing Email Verification
 
-#### Option C: Mailgun
+### With Real Email:
+1. Use your actual email or a test email service
+2. Follow the standard sign-up flow
+3. Check inbox for verification email
 
-1. Sign up at https://mailgun.com
-2. Get API key from Settings > API Security
-3. Update Edge Function for Mailgun API
+### With Test Emails:
+Use email variations to test multiple accounts:
+- `test+1@gmail.com`
+- `test+2@gmail.com`
+- `test+3@gmail.com`
 
-### Step 5: Set Environment Variables
+All variations go to the same inbox but create separate auth accounts.
 
-Set your email API key as a secret:
+---
 
-```powershell
-# For Resend
-supabase secrets set RESEND_API_KEY=re_your_api_key_here
+## 📧 How It Works
 
-# For SendGrid
-supabase secrets set SENDGRID_API_KEY=SG.your_api_key_here
+### Sign Up Flow:
+1. User enters email, password, name, phone, username
+2. Account created in `auth.users` table
+3. User profile created in `public.users` table with `email_verified = false`
+4. Supabase Auth sends confirmation email automatically
 
-# For Mailgun
-supabase secrets set MAILGUN_API_KEY=your_api_key_here
-supabase secrets set MAILGUN_DOMAIN=mg.yourdomain.com
-```
+### Email Verification:
+1. User receives email with subject: "Confirm your email"
+2. Email contains a verification link
+3. Clicking link marks email as confirmed in `auth.users`
+4. `email_confirmed_at` timestamp is set
+5. User can now fully use the app
 
-Verify secrets:
-```powershell
-supabase secrets list
-```
+### Login:
+1. User logs in with email/username and password
+2. App checks if account is created
+3. User gains full access
 
-### Step 6: Update Email "From" Address
+---
 
-Edit `supabase/functions/send-otp-email/index.ts`:
+## 🔐 Security Features
 
-```typescript
-// Change this line:
-from: 'MotoRent Dumaguete <noreply@yourdomain.com>',
+- ✅ **Email confirmation required**: Prevents fake/spam emails
+- ✅ **Time-limited links**: Default 24-hour expiration
+- ✅ **One-click verification**: User-friendly experience
+- ✅ **Built-in Supabase security**: Industry-standard encryption
+- ✅ **HTTPS only**: All communications encrypted
 
-// To your verified domain or Resend test domain:
-from: 'MotoRent Dumaguete <onboarding@resend.dev>', // For testing
-// OR
-from: 'MotoRent Dumaguete <noreply@motorent-dumaguete.com>', // Production
-```
+---
 
-### Step 7: Deploy the Edge Function
+## 🛠️ Troubleshooting
 
-```powershell
-# Deploy the function
-supabase functions deploy send-otp-email
+### Email Not Received
 
-# Verify deployment
-supabase functions list
-```
+**Check:**
+1. Spam/Junk folder
+2. Email configuration in Supabase Dashboard
+3. Redirect URL is correctly set
+4. Email template is enabled
 
-You should see:
-```
-┌──────────────────┬────────────┬─────────────────────┐
-│ Name             │ Status     │ Version             │
-├──────────────────┼────────────┼─────────────────────┤
-│ send-otp-email   │ ACTIVE     │ 1                   │
-└──────────────────┴────────────┴─────────────────────┘
-```
+**Solution:**
+- Wait a few minutes (can take up to 5 minutes)
+- Try signing up with different email
+- Check Supabase function logs for errors
 
-### Step 8: Test the Function
+### Verification Link Expired
 
-Test using curl:
+**Issue:** User receives email but link is expired
 
-```powershell
-# Get your function URL and anon key from Supabase Dashboard
-$FUNCTION_URL = "https://your-project-ref.supabase.co/functions/v1/send-otp-email"
-$ANON_KEY = "your-anon-key"
+**Solution:**
+- Default expiration is 24 hours
+- User must click link within this time
+- Can request new verification email in app
 
-# Test the function
-curl -X POST $FUNCTION_URL `
-  -H "Authorization: Bearer $ANON_KEY" `
-  -H "Content-Type: application/json" `
-  -d '{"email":"test@example.com","otp":"123456"}'
-```
+### Redirect Loop
 
-Expected response:
-```json
-{"success":true,"data":{"id":"some-email-id"}}
-```
+**Issue:** User gets stuck in redirect loop after clicking verification link
 
-### Step 9: Update Flutter Auth Service
+**Check:**
+1. Verify redirect URL matches exactly in Supabase Dashboard
+2. App is properly configured to handle auth callbacks
+3. Deep linking is set up correctly (for mobile)
 
-Now update your auth service to call the Edge Function instead of printing to console.
+### Can't Log In After Verification
 
-Open `lib/services/auth_service_supabase.dart` and find the `sendOTP` method:
+**Issue:** Email verified but can't log in
+
+**Check:**
+1. User account exists in `public.users` table
+2. Email matches in both `auth.users` and `public.users`
+3. Password is entered correctly
+4. No database constraints preventing login
+
+---
+
+## 📊 Email Verification Status
+
+**Check verification status:**
 
 ```dart
-// Replace this line:
-print('OTP Code for $email: $otp');
+// In auth_service_supabase.dart
+bool get isEmailVerified => _currentUser?.emailVerified ?? false;
 
-// With this:
-try {
-  await _supabase.client.functions.invoke(
-    'send-otp-email',
-    body: {
-      'email': email,
-      'otp': otp,
-    },
-  );
-  print('OTP sent to $email successfully');
-} catch (e) {
-  print('Error sending OTP email: $e');
-  throw Exception('Failed to send OTP email');
+// Check in your app
+if (authService.isEmailVerified) {
+  // User email is verified
+} else {
+  // User needs to verify email
 }
 ```
-
-### Step 10: Test End-to-End
-
-1. Run your Flutter app:
-```powershell
-flutter run
-```
-
-2. Sign up with a real email address
-3. Check your email inbox for the OTP
-4. Enter the OTP in the verification screen
-5. Verify successful login
-
----
-
-## 🔍 Troubleshooting
-
-### Function not deploying?
-
-```powershell
-# Check function logs
-supabase functions logs send-otp-email
-
-# Test locally first
-supabase functions serve send-otp-email
-```
-
-### Email not received?
-
-1. **Check spam folder** - First place to look
-2. **Verify API key** - Make sure secret is set correctly
-3. **Check function logs** - Look for errors in Supabase Dashboard
-4. **Domain verification** - Some services require domain verification
-5. **Rate limits** - Check if you've hit API limits
-
-### View function logs:
-
-```powershell
-# Real-time logs
-supabase functions logs send-otp-email --follow
-
-# Or in Supabase Dashboard:
-# Edge Functions > send-otp-email > Logs
-```
-
-### Common errors:
-
-**"RESEND_API_KEY is not defined"**
-- Run: `supabase secrets set RESEND_API_KEY=your_key`
-
-**"Email sending failed"**
-- Check API key is valid
-- Verify "from" email is allowed
-- Check Resend dashboard for errors
-
-**"Function not found"**
-- Redeploy: `supabase functions deploy send-otp-email`
-- Check project is linked: `supabase link --project-ref your-ref`
-
----
-
-## 📊 Monitoring
-
-### Check email delivery:
-
-**Resend Dashboard:**
-- Go to https://resend.com/emails
-- View all sent emails, opens, clicks
-- Check bounce and complaint rates
-
-**Supabase Dashboard:**
-- Functions > send-otp-email > Invocations
-- Monitor function calls and errors
-
-### Set up alerts:
-
-1. Go to Supabase Dashboard > Reports
-2. Set up alerts for function failures
-3. Monitor email delivery rates in Resend
-
----
-
-## 💰 Pricing (Free Tiers)
-
-### Resend (Recommended)
-- ✅ 100 emails/day
-- ✅ 3,000 emails/month
-- ✅ No credit card required
-
-### SendGrid
-- ✅ 100 emails/day
-- ❌ Requires credit card
-
-### Mailgun
-- ✅ 5,000 emails/month (3 months)
-- ❌ Requires credit card
-
-### Supabase Edge Functions
-- ✅ 500,000 invocations/month
-- ✅ 2GB bandwidth/month
-
----
-
-## 🎨 Customizing the Email Template
-
-Edit `supabase/functions/send-otp-email/index.ts`:
-
-1. **Change colors:** Modify hex values in the HTML
-2. **Add logo:** Include `<img>` tag with your logo URL
-3. **Update text:** Change wording, add branding
-4. **Add social links:** Include footer with social media icons
-
-Example logo addition:
-
-```html
-<!-- Add after header opening -->
-<tr>
-  <td align="center" style="padding: 20px 0;">
-    <img src="https://yourdomain.com/logo.png" 
-         alt="MotoRent Logo" 
-         width="120" 
-         style="display: block;">
-  </td>
-</tr>
-```
-
----
-
-## 🔐 Security Best Practices
-
-1. **Never expose API keys** - Always use environment variables
-2. **Validate JWT** - Set `verify_jwt = true` in production
-3. **Rate limiting** - Implement in Edge Function
-4. **Email validation** - Verify email format before sending
-5. **Monitor usage** - Watch for abuse patterns
-6. **HTTPS only** - Supabase enforces this automatically
 
 ---
 
 ## 🚀 Production Checklist
 
-- [ ] Domain verified with email service
-- [ ] Production API keys set
-- [ ] "From" email updated to your domain
-- [ ] Edge Function deployed to production
-- [ ] Secrets set in production project
-- [ ] Email template tested with real addresses
-- [ ] Monitoring and alerts configured
-- [ ] Rate limiting implemented
-- [ ] Error handling tested
-- [ ] Privacy policy updated (mention email verification)
+Before deploying to production:
+
+- [ ] Supabase Auth is enabled
+- [ ] Email confirmation is required
+- [ ] Redirect URLs are configured
+- [ ] Email template is customized (optional)
+- [ ] Test email verification flow works
+- [ ] Users in different regions receive emails
+- [ ] Links don't expire too quickly (24 hours is standard)
+- [ ] Error messages are user-friendly
+- [ ] Support email is configured for bounces
 
 ---
 
-## 📚 Additional Resources
+## 🔗 Useful Links
 
-- [Supabase Edge Functions Docs](https://supabase.com/docs/guides/functions)
-- [Resend Documentation](https://resend.com/docs)
-- [Resend with Supabase Guide](https://resend.com/docs/send-with-supabase-edge-functions)
-- [SendGrid API Docs](https://docs.sendgrid.com/api-reference)
-
----
-
-## 💡 Next Steps
-
-After email is working:
-
-1. **Add analytics** - Track verification completion rate
-2. **A/B test** - Try different email designs
-3. **Localization** - Support multiple languages
-4. **SMS backup** - Add phone verification option
-5. **Branding** - Customize email template with your brand
+- [Supabase Auth Documentation](https://supabase.com/docs/guides/auth)
+- [Email Verification](https://supabase.com/docs/guides/auth/managing-user-sessions#email-verification)
+- [Email Templates](https://supabase.com/docs/guides/auth/emails)
+- [URL Configuration](https://supabase.com/docs/guides/auth/redirect-urls)
 
 ---
 
-## 🆘 Need Help?
+## ❓ FAQ
 
-If you encounter issues:
+### Q: Can I customize the verification email?
+**A:** Yes! Go to **Auth → Email Templates → Confirm signup** and edit the HTML.
 
-1. Check function logs: `supabase functions logs send-otp-email`
-2. Test locally: `supabase functions serve send-otp-email`
-3. Review Resend dashboard for delivery issues
-4. Check Supabase Discord community
-5. Review this guide's troubleshooting section
+### Q: How long is the verification link valid?
+**A:** Default is 24 hours. You can adjust in **Auth → Email → Email Change**.
 
----
-
-## ✅ Quick Command Reference
-
-```powershell
-# Setup
-supabase login
-supabase link --project-ref your-ref
-
-# Deploy
-supabase functions deploy send-otp-email
-
-# Manage secrets
-supabase secrets set RESEND_API_KEY=your_key
-supabase secrets list
-
-# Monitor
-supabase functions logs send-otp-email --follow
-supabase functions list
-
-# Test locally
-supabase functions serve send-otp-email
+### Q: Can I resend the verification email?
+**A:** Yes, implement a "Resend Email" button that calls:
+```dart
+await authService.client.auth.resendPasswordResetEmail(email);
 ```
 
+### Q: What if the user never verifies their email?
+**A:** You can:
+- Prevent login until verified
+- Show a reminder to verify
+- Auto-delete unverified accounts after X days
+
+### Q: Does it work with custom domains?
+**A:** Yes! Use your own domain email in the template instead of Supabase's default.
+
+### Q: How do I monitor email delivery?
+**A:** 
+1. Check Supabase Auth logs
+2. Monitor email bounce rates
+3. Set up alerts for delivery failures
+
 ---
 
-**You're all set! 🎉** Your OTP email verification system is now ready for production use.
+**Status:** ✅ Supabase Email Verification
+**Date:** December 1, 2025
+**External Services:** None required
+**Cost:** Free (included with Supabase)

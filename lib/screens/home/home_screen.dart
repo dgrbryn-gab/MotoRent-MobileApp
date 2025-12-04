@@ -78,9 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
             isDark ? AppTheme.textPrimary : AppTheme.lightTextPrimary;
         final textSecondary =
             isDark ? AppTheme.textSecondary : AppTheme.lightTextSecondary;
-        final cardColor = isDark ? AppTheme.cardColor : AppTheme.lightCardColor;
-        final borderColor =
-            isDark ? AppTheme.borderColor : AppTheme.lightBorderColor;
 
         return Padding(
           padding: const EdgeInsets.all(16.0),
@@ -92,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       authService.isAuthenticated
-                          ? 'Welcome back, ${authService.currentUser?.firstName ?? 'User'}!'
+                          ? 'Welcome back, ${authService.currentUser?.username ?? authService.currentUser?.firstName ?? 'User'}!'
                           : 'Welcome to MotoRent',
                       style: TextStyle(
                         fontSize: 20,

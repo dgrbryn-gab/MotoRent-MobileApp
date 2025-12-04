@@ -2,10 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:moto_rent_dumaguete/models/user.dart' as models;
 import 'package:moto_rent_dumaguete/services/supabase_service.dart';
+import 'package:moto_rent_dumaguete/services/resend_service.dart';
+import 'package:moto_rent_dumaguete/services/otp_service.dart';
 import 'package:moto_rent_dumaguete/config/supabase_config.dart';
 
 class AuthServiceSupabase extends ChangeNotifier {
   final SupabaseService _supabase = SupabaseService.instance;
+  final ResendService _resendService = ResendService();
 
   models.User? _currentUser;
   String? _error;
@@ -86,7 +89,7 @@ class AuthServiceSupabase extends ChangeNotifier {
           id: user.id,
           name: user.userMetadata?['name'] ?? user.email?.split('@')[0] ?? '',
           email: user.email ?? '',
-          username: user.email?.split('@')[0],
+          username: user.userMetadata?['username'],
           phone: user.userMetadata?['phone'] ?? '',
           createdAt: DateTime.now(),
         );
@@ -100,6 +103,91 @@ class AuthServiceSupabase extends ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+    }
+  }
+
+  // Send OTP verification email
+  Future<bool> sendOtpEmail(String email, String otp) async {
+    try {
+      print('🔷 [AuthService] sendOtpEmail called for $email');
+      print('🔷 [AuthService] OTP: $otp');
+
+      final emailSent = await _resendService.sendOtpEmail(
+        email: email,
+        otp: otp,
+      );
+
+      if (emailSent) {
+        print('🔷 [AuthService] ✅ OTP email sent successfully!');
+        return true;
+      } else {
+        print('🔷 [AuthService] ⚠️ Warning: Failed to send OTP email');
+        return false;
+      }
+    } catch (e) {
+      print('🔷 [AuthService] ❌ Error sending OTP email: $e');
+      return false;
+    }
+  }
+
+  // Resend OTP verification email
+  Future<bool> resendOtpEmail({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      print('🔷 [AuthService] resendOtpEmail called for $email');
+      print('🔷 [AuthService] OTP: $otp');
+
+      final emailSent = await _resendService.sendOtpEmail(
+        email: email,
+        otp: otp,
+      );
+
+      if (emailSent) {
+        print('🔷 [AuthService] ✅ OTP email resent successfully!');
+        return true;
+      } else {
+        print('🔷 [AuthService] ⚠️ Warning: Failed to resend OTP email');
+        return false;
+      }
+    } catch (e) {
+      print('🔷 [AuthService] ❌ Error resending OTP email: $e');
+      return false;
+    }
+  }
+
+  // Save user profile to database (called after OTP verification)
+  Future<bool> saveUserProfile(String userId) async {
+    try {
+      if (_currentUser == null) {
+        _error = 'User data not found';
+        return false;
+      }
+
+      final userProfile = {
+        'id': userId,
+        'name': _currentUser!.name,
+        'email': _currentUser!.email,
+        'username': _currentUser!.username,
+        'phone': _currentUser!.phone,
+        'phone_number': _currentUser!.phone, // Also set web app column
+        'created_at': _currentUser!.createdAt.toIso8601String(),
+        'email_verified': true, // User has verified their email with OTP
+      };
+
+      // Use upsert to handle both insert and update cases
+      // This prevents "duplicate key" errors if user record already exists
+      await _supabase.client
+          .from(SupabaseConfig.usersTable)
+          .upsert(userProfile);
+
+      print('✅ User profile saved to database');
+      return true;
+    } catch (e) {
+      print('❌ Error saving user profile: $e');
+      _error = 'Failed to save user profile: ${e.toString()}';
+      return false;
     }
   }
 
@@ -162,35 +250,48 @@ class AuthServiceSupabase extends ChangeNotifier {
         return false;
       }
 
-      // Create user profile in database
+      // Store user data in memory for OTP verification flow
+      // User profile will be saved to database ONLY after successful OTP verification
+      _currentUser = models.User(
+        id: response.user!.id,
+        name: name,
+        email: email,
+        username: username,
+        phone: phone,
+        createdAt: DateTime.now(),
+        emailVerified: false,
+      );
+
+      // Send verification via OTP
       try {
-        final userProfile = {
-          'id': response.user!.id, // Use Supabase Auth user ID
-          'name': name,
-          'email': email,
-          'username': username,
-          'phone': phone,
-          'phone_number': phone, // Also set web app column
-          'created_at': DateTime.now().toIso8601String(),
-          'email_verified': false, // Will be set to true after OTP verification
-        };
-
-        await _supabase.insert(SupabaseConfig.usersTable, userProfile);
-
-        _currentUser = models.User(
-          id: response.user!.id,
-          name: name,
-          email: email,
-          username: username,
-          phone: phone,
-          createdAt: DateTime.now(),
-          emailVerified: false,
+        final otp = OtpService.generateOtp();
+        final stored = await OtpService.storeOtp(
+          email,
+          otp,
+          userId: response.user!.id,
         );
+
+        if (stored == null) {
+          throw Exception('Failed to store OTP in database');
+        }
+
+        print('🔷 [SignUp] Generated OTP: $otp');
+        print('🔷 [SignUp] Sending OTP to $email...');
+        final emailSent = await sendOtpEmail(email, otp);
+        if (emailSent) {
+          print('🔷 [SignUp] ✅ OTP email sent successfully!');
+        } else {
+          print(
+              '🔷 [SignUp] ⚠️ Warning: Failed to send OTP email, but continuing...');
+          // Continue anyway - user can request resend later
+        }
+
         _isLoading = false;
         notifyListeners();
         return true;
       } catch (e) {
-        // If profile creation fails, delete the auth user to prevent orphaned accounts
+        print('🔷 [SignUp] ❌ Exception in OTP sending: $e');
+        // If OTP sending fails, delete the auth user to prevent orphaned accounts
         try {
           await _supabase.client.auth.admin.deleteUser(response.user!.id);
         } catch (deleteError) {
@@ -199,8 +300,9 @@ class AuthServiceSupabase extends ChangeNotifier {
 
         // Sign out to clear the session
         await _supabase.signOut();
+        _currentUser = null;
 
-        _error = 'Failed to create user profile: ${e.toString()}';
+        _error = 'Failed to send verification code: ${e.toString()}';
         _isLoading = false;
         notifyListeners();
         return false;
@@ -313,104 +415,16 @@ class AuthServiceSupabase extends ChangeNotifier {
     }
   }
 
-  // Generate and send OTP code to email
-  Future<bool> sendOTP({required String email, required String userId}) async {
-    try {
-      // Generate 6-digit OTP
-      final otp = _generateOTP();
-      final expiresAt = DateTime.now().add(const Duration(minutes: 10));
-
-      print('========================================');
-      print('Sending OTP to: $email');
-      print('OTP CODE: $otp');
-      print('User ID: $userId');
-      print('========================================');
-
-      // Store OTP in database
-      try {
-        await _supabase.insert('otp_codes', {
-          'user_id': userId,
-          'email': email,
-          'otp_code': otp,
-          'expires_at': expiresAt.toIso8601String(),
-          'is_used': false,
-        });
-        print('✅ OTP saved to database');
-      } catch (dbError) {
-        print('❌ Database error: $dbError');
-        throw Exception('Failed to save OTP to database: $dbError');
-      }
-
-      // Send OTP email via Resend Edge Function
-      try {
-        final response = await _supabase.client.functions.invoke(
-          'send-otp-email',
-          body: {
-            'email': email,
-            'otp': otp,
-          },
-        );
-
-        print('✅ Edge Function response: ${response.data}');
-        print('✅ OTP email sent to $email');
-      } catch (emailError) {
-        print('❌ Edge Function error: $emailError');
-        print('📧 Check if RESEND_API_KEY is set in Supabase Dashboard');
-        print('📱 For now, use this OTP to verify: $otp');
-        // Don't throw - OTP is still in database and can be used
-      }
-
-      return true;
-    } catch (e) {
-      print('❌ SEND OTP ERROR: ${e.toString()}');
-      _error = 'Failed to send OTP: ${e.toString()}';
-      notifyListeners();
-      return false;
-    }
-  }
-
-  // Verify OTP code
-  Future<bool> verifyOTP(
-      {required String email, required String otpCode}) async {
+  // Request email confirmation
+  // Supabase Auth will send confirmation email automatically when emailRedirectTo is set
+  // Users click the link in the email to confirm their account
+  Future<bool> confirmEmail({required String email}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Get the latest unused OTP for this email
-      final otpRecords = await _supabase.client
-          .from('otp_codes')
-          .select()
-          .eq('email', email)
-          .eq('otp_code', otpCode)
-          .eq('is_used', false)
-          .order('created_at', ascending: false)
-          .limit(1);
-
-      if (otpRecords.isEmpty) {
-        _error = 'Invalid OTP code';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-
-      final otpRecord = otpRecords.first;
-      final expiresAt = DateTime.parse(otpRecord['expires_at']);
-
-      // Check if OTP is expired
-      if (DateTime.now().isAfter(expiresAt)) {
-        _error = 'OTP code has expired';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-
-      // Mark OTP as used
-      await _supabase.client
-          .from('otp_codes')
-          .update({'is_used': true}).eq('id', otpRecord['id']);
-
-      // Update user as verified
+      // Update user as verified in database
       await _supabase.client.from(SupabaseConfig.usersTable).update({
         'email_verified': true,
         'updated_at': DateTime.now().toIso8601String()
@@ -423,50 +437,11 @@ class AuthServiceSupabase extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = 'Failed to verify OTP: ${e.toString()}';
+      _error = 'Failed to confirm email: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
       return false;
     }
-  }
-
-  // Resend OTP code
-  Future<bool> resendOTP({required String email}) async {
-    try {
-      // Get user ID from email
-      final users = await _supabase.getWhere(
-        SupabaseConfig.usersTable,
-        'email',
-        email,
-      );
-
-      if (users.isEmpty) {
-        _error = 'User not found';
-        return false;
-      }
-
-      final userId = users.first['id'];
-
-      // Invalidate all previous OTPs for this user
-      await _supabase.client
-          .from('otp_codes')
-          .update({'is_used': true})
-          .eq('user_id', userId)
-          .eq('is_used', false);
-
-      // Send new OTP
-      return await sendOTP(email: email, userId: userId);
-    } catch (e) {
-      _error = 'Failed to resend OTP: ${e.toString()}';
-      notifyListeners();
-      return false;
-    }
-  }
-
-  // Generate random 6-digit OTP
-  String _generateOTP() {
-    final random = DateTime.now().millisecondsSinceEpoch % 1000000;
-    return random.toString().padLeft(6, '0');
   }
 
   // Update user profile
@@ -545,9 +520,10 @@ class AuthServiceSupabase extends ChangeNotifier {
     }
   }
 
-  // Update user profile (name and phone)
+  // Update user profile (name, username, phone, birthday, address)
   Future<bool> updateUserProfile({
     String? name,
+    String? username,
     String? phoneNumber,
     DateTime? birthday,
     String? address,
@@ -561,6 +537,7 @@ class AuthServiceSupabase extends ChangeNotifier {
     try {
       print('DEBUG: Updating user profile...');
       print('DEBUG: Name: $name');
+      print('DEBUG: Username: $username');
       print('DEBUG: Phone: $phoneNumber');
       print('DEBUG: Birthday: $birthday');
       print('DEBUG: Address: $address');
@@ -571,6 +548,7 @@ class AuthServiceSupabase extends ChangeNotifier {
       };
 
       if (name != null) updatedData['name'] = name;
+      if (username != null) updatedData['username'] = username;
       if (phoneNumber != null) {
         updatedData['phone_number'] = phoneNumber;
         updatedData['phone'] = phoneNumber; // Also update web app column

@@ -108,35 +108,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
 
       if (success && mounted) {
-        // Get the user ID from the auth service
-        final userId = authService.currentUser?.id;
         final email = _emailController.text.trim();
+        final userId = authService.currentUser?.id;
 
+        // Signup successful - show OTP verification screen
+        // User must verify their email with OTP before they can access the app
         if (userId != null) {
-          // Send OTP code
-          final otpSent = await authService.sendOTP(
-            email: email,
-            userId: userId,
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => OtpVerificationScreen(
+                email: email,
+                userId: userId,
+              ),
+            ),
           );
-
-          if (otpSent && mounted) {
-            // Navigate to OTP verification screen
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => OTPVerificationScreen(
-                  email: email,
-                  userId: userId,
-                ),
-              ),
-            );
-          } else if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Failed to send OTP. Please try again.'),
-                backgroundColor: AppTheme.errorColor,
-              ),
-            );
-          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to get user ID. Please try again.'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

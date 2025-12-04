@@ -507,6 +507,33 @@ class _MotorcycleDetailScreenState extends State<MotorcycleDetailScreen> {
                     onPressed: widget.motorcycle.isAvailable
                         ? () {
                             if (authService.isAuthenticated) {
+                              // Check if email is verified
+                              if (!authService.currentUser!.emailVerified) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Please verify your email before booking',
+                                    ),
+                                    backgroundColor: AppTheme.warningColor,
+                                    duration: const Duration(seconds: 3),
+                                    action: SnackBarAction(
+                                      label: 'Verify',
+                                      textColor: Colors.white,
+                                      onPressed: () {
+                                        Navigator.of(context)
+                                            .pushNamedAndRemoveUntil(
+                                          '/',
+                                          (route) => false,
+                                        );
+                                        Navigator.of(context)
+                                            .pushNamed('/profile');
+                                      },
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -527,11 +554,16 @@ class _MotorcycleDetailScreenState extends State<MotorcycleDetailScreen> {
                     isLoading: false,
                     text: widget.motorcycle.isAvailable
                         ? (authService.isAuthenticated
-                            ? 'Book Now'
+                            ? (authService.currentUser!.emailVerified
+                                ? 'Book Now'
+                                : 'Verify Email')
                             : 'Login to Book')
                         : 'Not Available',
                     backgroundColor: widget.motorcycle.isAvailable
-                        ? AppTheme.secondaryColor
+                        ? (authService.isAuthenticated &&
+                                !authService.currentUser!.emailVerified
+                            ? AppTheme.warningColor
+                            : AppTheme.secondaryColor)
                         : AppTheme.textSecondary,
                   );
                 },

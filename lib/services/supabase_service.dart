@@ -39,6 +39,8 @@ class SupabaseService {
   Session? get currentSession => client.auth.currentSession;
 
   // Sign up with email and password
+  // Note: emailRedirectTo is set to null because email verification is handled by Resend service
+  // This prevents Supabase from sending duplicate emails and avoids rate limiting
   Future<AuthResponse> signUp({
     required String email,
     required String password,
@@ -48,7 +50,7 @@ class SupabaseService {
       email: email,
       password: password,
       data: userData,
-      emailRedirectTo: null, // Disable email confirmation link
+      emailRedirectTo: null,
     );
   }
 

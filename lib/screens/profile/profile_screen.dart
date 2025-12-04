@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:moto_rent_dumaguete/services/auth_service_supabase.dart';
 import 'package:moto_rent_dumaguete/services/theme_service.dart';
 import 'package:moto_rent_dumaguete/services/locale_service.dart';
+import 'package:moto_rent_dumaguete/services/otp_service.dart';
+import 'package:moto_rent_dumaguete/screens/auth/otp_verification_screen.dart';
 import 'package:moto_rent_dumaguete/screens/auth/auth_screen.dart';
 import 'package:moto_rent_dumaguete/screens/profile/license_upload_screen.dart';
 import 'package:moto_rent_dumaguete/screens/profile/edit_profile_screen.dart';
@@ -220,7 +222,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: textPrimary,
                   ),
                 ),
-                const SizedBox(height: 4),
+                if (user.username != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '@${user.username}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
                 Text(
                   user.email,
                   style: TextStyle(
@@ -250,6 +264,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
+
+          const SizedBox(height: 24),
+
+          // Email Verification Section (if not verified)
+          if (!user.isVerified)
+            _buildEmailVerificationCard(context, user, authService),
 
           const SizedBox(height: 24),
 
@@ -522,6 +542,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: TextStyle(
               fontSize: 12,
               color: textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmailVerificationCard(
+    BuildContext context,
+    dynamic user,
+    AuthServiceSupabase authService,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary =
+        isDark ? AppTheme.textPrimary : AppTheme.lightTextPrimary;
+    final textSecondary =
+        isDark ? AppTheme.textSecondary : AppTheme.lightTextSecondary;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.warningColor.withOpacity(0.1),
+        border: Border.all(
+          color: AppTheme.warningColor.withOpacity(0.3),
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.mail_outline,
+                color: AppTheme.warningColor,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Email Verification Required',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Verify your email to make bookings',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                // Generate OTP and send email
+                final otp = OtpService.generateOtp();
+                OtpService.storeOtp(user.email, otp);
+
+                authService.sendOtpEmail(user.email, otp).then((sent) {
+                  if (sent) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => OtpVerificationScreen(
+                          email: user.email,
+                          userId: user.id,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to send OTP. Please try again.'),
+                        backgroundColor: AppTheme.errorColor,
+                      ),
+                    );
+                  }
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Text(
+                'Verify Email',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],

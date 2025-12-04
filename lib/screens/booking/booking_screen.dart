@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:moto_rent_dumaguete/models/motorcycle.dart';
-import 'package:moto_rent_dumaguete/models/reservation.dart';
-import 'package:moto_rent_dumaguete/models/booking.dart'
-    show BookingStatus, PaymentMethod;
+import 'package:moto_rent_dumaguete/models/booking.dart' show PaymentMethod;
 import 'package:moto_rent_dumaguete/services/booking_service.dart';
 import 'package:moto_rent_dumaguete/services/auth_service_supabase.dart';
 import 'package:moto_rent_dumaguete/services/storage_service_supabase.dart';
@@ -584,6 +582,8 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
+  // Note: _showUploadDocumentsDialog method is not currently used but kept for future implementation
+  /*
   void _showUploadDocumentsDialog(Reservation booking) {
     showDialog(
       context: context,
@@ -690,7 +690,10 @@ class _BookingScreenState extends State<BookingScreen> {
       },
     );
   }
+  */
 
+  // Note: _pickAndUploadDocument method is not currently used but kept for future implementation
+  /*
   Future<void> _pickAndUploadDocument(Reservation booking) async {
     try {
       final ImagePicker picker = ImagePicker();
@@ -814,6 +817,7 @@ class _BookingScreenState extends State<BookingScreen> {
       );
     }
   }
+  */
 
   @override
   Widget build(BuildContext context) {

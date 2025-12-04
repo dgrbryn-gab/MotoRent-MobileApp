@@ -16,6 +16,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
+  late TextEditingController _usernameController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
   DateTime? _selectedBirthday;
@@ -29,6 +30,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final authService = context.read<AuthServiceSupabase>();
     final user = authService.currentUser!;
     _nameController = TextEditingController(text: user.name);
+    _usernameController = TextEditingController(text: user.username ?? '');
     _phoneController = TextEditingController(text: user.phoneNumber);
     _addressController = TextEditingController(text: user.address ?? '');
     _selectedBirthday = user.birthday;
@@ -37,6 +39,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     super.dispose();
@@ -182,12 +185,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       print('DEBUG: Saving profile...');
       print('DEBUG: Name: ${_nameController.text.trim()}');
+      print('DEBUG: Username: ${_usernameController.text.trim()}');
       print('DEBUG: Phone: ${_phoneController.text.trim()}');
       print('DEBUG: Birthday: $_selectedBirthday');
       print('DEBUG: Address: ${_addressController.text.trim()}');
 
       final success = await authService.updateUserProfile(
         name: _nameController.text.trim(),
+        username: _usernameController.text.trim().isNotEmpty
+            ? _usernameController.text.trim()
+            : null,
         phoneNumber: _phoneController.text.trim(),
         birthday: _selectedBirthday,
         address: _addressController.text.trim().isEmpty
@@ -497,6 +504,65 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             }
                             if (value.trim().length < 2) {
                               return 'Name must be at least 2 characters';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Username
+                        Text(
+                          'Username',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _usernameController,
+                          style: TextStyle(color: textPrimary),
+                          decoration: InputDecoration(
+                            hintText: 'Enter your username',
+                            hintStyle: TextStyle(
+                                color: textSecondary.withOpacity(0.5)),
+                            prefixIcon: Icon(Icons.alternate_email,
+                                color: textSecondary),
+                            filled: true,
+                            fillColor: cardColor,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? AppTheme.borderColor
+                                    : AppTheme.lightBorderColor,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? AppTheme.borderColor
+                                    : AppTheme.lightBorderColor,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: AppTheme.primaryColor, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value != null && value.trim().isNotEmpty) {
+                              if (value.trim().length < 3) {
+                                return 'Username must be at least 3 characters';
+                              }
+                              if (!RegExp(r'^[a-zA-Z0-9_]+$')
+                                  .hasMatch(value.trim())) {
+                                return 'Username can only contain letters, numbers, and underscores';
+                              }
                             }
                             return null;
                           },

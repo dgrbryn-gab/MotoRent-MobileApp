@@ -15,9 +15,6 @@ class BottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? AppTheme.cardColor : AppTheme.lightCardColor;
-    final borderColor =
-        isDark ? AppTheme.borderColor : AppTheme.lightBorderColor;
     final textSecondary =
         isDark ? AppTheme.textSecondary : AppTheme.lightTextSecondary;
 

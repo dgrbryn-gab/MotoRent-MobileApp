@@ -307,6 +307,7 @@ class _LicenseUploadScreenState extends State<LicenseUploadScreen> {
                         GestureDetector(
                           onTap: _isUploading ? null : _pickLicenseImage,
                           child: Container(
+                            width: double.infinity,
                             height: 200,
                             decoration: BoxDecoration(
                               color: cardColor,
@@ -382,6 +383,8 @@ class _LicenseUploadScreenState extends State<LicenseUploadScreen> {
                                     : Column(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
                                           Icon(
                                             Icons.cloud_upload_outlined,

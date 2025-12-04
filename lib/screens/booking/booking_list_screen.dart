@@ -688,6 +688,8 @@ class _BookingListScreenState extends State<BookingListScreen> {
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  // Note: _uploadDocuments method is not currently used but kept for future implementation
+  /*
   void _uploadDocuments(Reservation booking) {
     showDialog(
       context: context,
@@ -774,6 +776,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
       },
     );
   }
+  */
 
   void _cancelBooking(Reservation booking) {
     showDialog(
