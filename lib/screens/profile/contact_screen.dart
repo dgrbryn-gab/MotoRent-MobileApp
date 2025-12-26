@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:moto_rent_dumaguete/theme/app_theme.dart';
+import 'package:moto_rent_dumaguete/services/auth_service_supabase.dart';
+import 'package:moto_rent_dumaguete/screens/messaging/messaging_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ContactScreen extends StatelessWidget {
+class ContactScreen extends StatefulWidget {
   const ContactScreen({super.key});
 
+  @override
+  State<ContactScreen> createState() => _ContactScreenState();
+}
+
+class _ContactScreenState extends State<ContactScreen> {
   Future<void> _launchUrl(String url) async {
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -44,6 +52,32 @@ class ContactScreen extends StatelessWidget {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  Future<void> _openMessaging() async {
+    final authService =
+        Provider.of<AuthServiceSupabase>(context, listen: false);
+
+    if (authService.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to send messages'),
+          backgroundColor: AppTheme.warningColor,
+        ),
+      );
+      return;
+    }
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MessagingScreen(
+            userEmail: authService.currentUser!.email,
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -146,6 +180,22 @@ class ContactScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
+                      // Message Contact
+                      _buildContactCard(
+                        context: context,
+                        icon: Icons.message,
+                        title: 'Message',
+                        subtitle: 'Chat directly with our support team',
+                        cardColor: cardColor,
+                        borderColor: borderColor,
+                        textPrimary: textPrimary,
+                        textSecondary: textSecondary,
+                        onTap: _openMessaging,
+                        actionLabel: 'Open Chat',
+                      ),
+
+                      const SizedBox(height: 12),
+
                       // Phone Contact
                       _buildContactCard(
                         context: context,
@@ -184,41 +234,6 @@ class ContactScreen extends StatelessWidget {
 
                       const SizedBox(height: 12),
 
-                      // Facebook Contact
-                      _buildContactCard(
-                        context: context,
-                        icon: Icons.facebook,
-                        title: 'Facebook',
-                        subtitle: 'MotoRent Dumaguete',
-                        cardColor: cardColor,
-                        borderColor: borderColor,
-                        textPrimary: textPrimary,
-                        textSecondary: textSecondary,
-                        onTap: () => _launchUrl(
-                            'https://www.facebook.com/motorentdumaguete'),
-                        actionLabel: 'Visit Page',
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // WhatsApp Contact
-                      _buildContactCard(
-                        context: context,
-                        icon: Icons.message,
-                        title: 'WhatsApp',
-                        subtitle: '+63 912 345 6789',
-                        cardColor: cardColor,
-                        borderColor: borderColor,
-                        textPrimary: textPrimary,
-                        textSecondary: textSecondary,
-                        onTap: () => _launchUrl('https://wa.me/639123456789'),
-                        onCopy: () => _copyToClipboard(
-                            context, '+63 912 345 6789', 'WhatsApp number'),
-                        actionLabel: 'Chat on WhatsApp',
-                      ),
-
-                      const SizedBox(height: 32),
-
                       // Business Hours Section
                       Text(
                         'Business Hours',
@@ -242,14 +257,14 @@ class ContactScreen extends StatelessWidget {
                           children: [
                             _buildHoursRow(
                                 'Monday - Friday',
-                                '8:00 AM - 6:00 PM',
+                                '8:00 AM - 5:00 PM',
                                 textPrimary,
                                 textSecondary),
                             const Divider(height: 24),
                             _buildHoursRow('Saturday', '9:00 AM - 5:00 PM',
                                 textPrimary, textSecondary),
                             const Divider(height: 24),
-                            _buildHoursRow('Sunday', '10:00 AM - 4:00 PM',
+                            _buildHoursRow('Sunday', '10:00 AM - 5:00 PM',
                                 textPrimary, textSecondary),
                           ],
                         ),

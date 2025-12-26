@@ -55,13 +55,23 @@ class AuthServiceSupabase extends ChangeNotifier {
           await _supabase.getById(SupabaseConfig.usersTable, user.id);
 
       if (userData != null) {
+        // Check if email is verified in Supabase Auth
+        final isEmailVerifiedInAuth = user.emailConfirmedAt != null;
+        // If email is verified in Supabase Auth, mark as verified in local user
+        final emailVerified =
+            userData['email_verified'] ?? isEmailVerifiedInAuth;
+
         _currentUser = models.User.fromJson({
           ...userData,
           'id': user.id,
           'email': user.email,
+          'email_verified':
+              emailVerified, // Use Supabase Auth status if available
         });
         print('DEBUG: User loaded from database');
         print('DEBUG: email_verified from DB: ${userData['email_verified']}');
+        print(
+            'DEBUG: email confirmed in Supabase Auth: $isEmailVerifiedInAuth');
         print('DEBUG: User.emailVerified: ${_currentUser?.emailVerified}');
       } else {
         // User profile doesn't exist in database
@@ -128,6 +138,38 @@ class AuthServiceSupabase extends ChangeNotifier {
       print('🔷 [AuthService] ❌ Error sending OTP email: $e');
       return false;
     }
+  }
+
+  /// Check if email is truly verified in Supabase Auth
+  /// This checks emailConfirmedAt timestamp which is the source of truth
+  /// Returns true only if email is confirmed in Supabase Auth
+  bool isEmailVerifiedInAuth() {
+    final user = _supabase.currentUser;
+    return user != null && user.emailConfirmedAt != null;
+  }
+
+  /// Check if user needs email verification on mobile app
+  /// Returns true only if:
+  /// 1. Email is not verified
+  /// 2. User signed up from mobile app
+  /// Returns false if:
+  /// 1. Email is already verified (either from web signup or mobile signup)
+  /// 2. User signed up from web app (not mobile)
+  bool shouldRequireEmailVerificationOnMobile() {
+    if (_currentUser == null) {
+      return false;
+    }
+
+    // If email is already verified, no need to verify
+    if (_currentUser!.emailVerified) {
+      return false;
+    }
+
+    // Check if user signed up from mobile (has signup_source metadata)
+    final signupSource = _supabase.currentUser?.userMetadata?['signup_source'];
+    final signedUpFromMobile = signupSource == 'mobile';
+
+    return signedUpFromMobile;
   }
 
   // Resend OTP verification email
@@ -233,6 +275,8 @@ class AuthServiceSupabase extends ChangeNotifier {
       }
 
       // Sign up with Supabase Auth
+      // Note: For mobile signups, we'll require OTP verification
+      // The app will send verification email, and user must verify before accessing app
       final response = await _supabase.signUp(
         email: email,
         password: password,
@@ -240,6 +284,7 @@ class AuthServiceSupabase extends ChangeNotifier {
           'name': name,
           'username': username,
           'phone': phone,
+          'signup_source': 'mobile', // Track that signup came from mobile app
         },
       );
 

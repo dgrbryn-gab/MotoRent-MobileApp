@@ -247,13 +247,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: user.isVerified
+                    color: authService.isEmailVerifiedInAuth()
                         ? AppTheme.successColor
                         : AppTheme.warningColor,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    user.isVerified ? 'Verified' : 'Pending Verification',
+                    authService.isEmailVerifiedInAuth()
+                        ? 'Verified'
+                        : 'Pending Verification',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -267,8 +269,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           const SizedBox(height: 24),
 
-          // Email Verification Section (if not verified)
-          if (!user.isVerified)
+          // Email Verification Section (only if email is not verified in Supabase Auth and signed up from mobile)
+          if (!authService.isEmailVerifiedInAuth() &&
+              authService.shouldRequireEmailVerificationOnMobile())
             _buildEmailVerificationCard(context, user, authService),
 
           const SizedBox(height: 24),
@@ -425,45 +428,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const ContactScreen(),
-                ),
-              );
-            },
-          ),
-
-          _buildMenuItem(
-            context: context,
-            icon: Icons.help_outline,
-            title: 'Help & Support',
-            subtitle: 'FAQs and support resources',
-            onTap: () {
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  backgroundColor:
-                      isDark ? AppTheme.cardColor : AppTheme.lightCardColor,
-                  title: Text(
-                    'Help & Support',
-                    style: TextStyle(
-                      color: isDark
-                          ? AppTheme.textPrimary
-                          : AppTheme.lightTextPrimary,
-                    ),
-                  ),
-                  content: Text(
-                    'Need help? Visit our Contact Us page for direct communication with our team.\n\nEmail: support@motorent.com\nPhone: +63 123 456 7890\n\nOperating Hours:\nMon-Sat: 8AM - 6PM',
-                    style: TextStyle(
-                      color: isDark
-                          ? AppTheme.textSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Close'),
-                    ),
-                  ],
                 ),
               );
             },

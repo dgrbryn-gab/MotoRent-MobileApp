@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:moto_rent_dumaguete/screens/home/home_screen.dart';
 import 'package:moto_rent_dumaguete/screens/booking/booking_list_screen.dart';
-import 'package:moto_rent_dumaguete/screens/transactions/transactions_screen.dart';
+import 'package:moto_rent_dumaguete/screens/rental_history/rental_history_screen.dart';
 import 'package:moto_rent_dumaguete/screens/profile/profile_screen.dart';
 import 'package:moto_rent_dumaguete/screens/notifications/notifications_screen.dart';
 import 'package:moto_rent_dumaguete/services/notification_service_supabase.dart';
@@ -33,7 +33,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       case 1:
         return const BookingListScreen();
       case 2:
-        return const TransactionsScreen();
+        return const RentalHistoryScreen();
       case 3:
         return ProfileScreen(
             key: ValueKey(DateTime.now().millisecondsSinceEpoch));
@@ -61,7 +61,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ? 'MotoRent'
                     : _currentIndex == 1
                         ? 'Reservations'
-                        : 'Transactions',
+                        : 'Rental History',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                 ),

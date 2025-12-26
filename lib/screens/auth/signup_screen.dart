@@ -111,7 +111,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         final email = _emailController.text.trim();
         final userId = authService.currentUser?.id;
 
-        // Signup successful - show OTP verification screen
+        // Signup successful - show OTP verification screen for mobile signup
         // User must verify their email with OTP before they can access the app
         if (userId != null) {
           Navigator.of(context).pushReplacement(
@@ -119,6 +119,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               builder: (context) => OtpVerificationScreen(
                 email: email,
                 userId: userId,
+                isMobileSignup: true, // Mark this as mobile signup
               ),
             ),
           );

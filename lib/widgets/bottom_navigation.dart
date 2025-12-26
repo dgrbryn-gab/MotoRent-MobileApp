@@ -52,9 +52,9 @@ class BottomNavigation extends StatelessWidget {
                     onTap: () => onTap(1),
                   ),
                   _AnimatedNavItem(
-                    icon: Icons.receipt_long_outlined,
-                    activeIcon: Icons.receipt_long,
-                    label: 'Transactions',
+                    icon: Icons.history_outlined,
+                    activeIcon: Icons.history,
+                    label: 'Rental History',
                     isSelected: currentIndex == 2,
                     textSecondary: textSecondary,
                     onTap: () => onTap(2),

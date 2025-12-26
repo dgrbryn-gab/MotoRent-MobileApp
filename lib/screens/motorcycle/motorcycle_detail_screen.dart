@@ -507,33 +507,55 @@ class _MotorcycleDetailScreenState extends State<MotorcycleDetailScreen> {
                     onPressed: widget.motorcycle.isAvailable
                         ? () {
                             if (authService.isAuthenticated) {
-                              // Check if email is verified
-                              if (!authService.currentUser!.emailVerified) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Please verify your email before booking',
+                              // Check if email is verified in Supabase Auth
+                              final isEmailVerified =
+                                  authService.isEmailVerifiedInAuth();
+
+                              if (!isEmailVerified) {
+                                // Email not verified
+                                final needsVerification = authService
+                                    .shouldRequireEmailVerificationOnMobile();
+
+                                if (needsVerification) {
+                                  // Mobile signup - show verification reminder
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                        'Please verify your email before booking',
+                                      ),
+                                      backgroundColor: AppTheme.warningColor,
+                                      duration: const Duration(seconds: 3),
+                                      action: SnackBarAction(
+                                        label: 'Verify',
+                                        textColor: Colors.white,
+                                        onPressed: () {
+                                          Navigator.of(context)
+                                              .pushNamedAndRemoveUntil(
+                                            '/',
+                                            (route) => false,
+                                          );
+                                          Navigator.of(context)
+                                              .pushNamed('/profile');
+                                        },
+                                      ),
                                     ),
-                                    backgroundColor: AppTheme.warningColor,
-                                    duration: const Duration(seconds: 3),
-                                    action: SnackBarAction(
-                                      label: 'Verify',
-                                      textColor: Colors.white,
-                                      onPressed: () {
-                                        Navigator.of(context)
-                                            .pushNamedAndRemoveUntil(
-                                          '/',
-                                          (route) => false,
-                                        );
-                                        Navigator.of(context)
-                                            .pushNamed('/profile');
-                                      },
+                                  );
+                                } else {
+                                  // Web signup but not yet verified on web either
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                        'Please verify your email before booking',
+                                      ),
+                                      backgroundColor: AppTheme.warningColor,
+                                      duration: const Duration(seconds: 3),
                                     ),
-                                  ),
-                                );
+                                  );
+                                }
                                 return;
                               }
 
+                              // Email is verified - allow booking
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -554,14 +576,14 @@ class _MotorcycleDetailScreenState extends State<MotorcycleDetailScreen> {
                     isLoading: false,
                     text: widget.motorcycle.isAvailable
                         ? (authService.isAuthenticated
-                            ? (authService.currentUser!.emailVerified
+                            ? (authService.isEmailVerifiedInAuth()
                                 ? 'Book Now'
                                 : 'Verify Email')
                             : 'Login to Book')
                         : 'Not Available',
                     backgroundColor: widget.motorcycle.isAvailable
                         ? (authService.isAuthenticated &&
-                                !authService.currentUser!.emailVerified
+                                !authService.isEmailVerifiedInAuth()
                             ? AppTheme.warningColor
                             : AppTheme.secondaryColor)
                         : AppTheme.textSecondary,

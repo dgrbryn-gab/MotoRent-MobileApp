@@ -11,6 +11,7 @@ import 'package:moto_rent_dumaguete/services/storage_service_supabase.dart';
 import 'package:moto_rent_dumaguete/services/theme_service.dart';
 import 'package:moto_rent_dumaguete/services/locale_service.dart';
 import 'package:moto_rent_dumaguete/services/supabase_service.dart';
+import 'package:moto_rent_dumaguete/services/messaging_service.dart';
 import 'package:moto_rent_dumaguete/theme/app_theme.dart';
 import 'package:moto_rent_dumaguete/screens/splash_screen.dart';
 import 'package:moto_rent_dumaguete/screens/auth/reset_password_screen.dart';
@@ -85,6 +86,7 @@ class _MotoRentAppState extends State<MotoRentApp> {
         ChangeNotifierProvider(create: (_) => ReservationServiceSupabase()),
         ChangeNotifierProvider(create: (_) => MotorcycleServiceSupabase()),
         ChangeNotifierProvider(create: (_) => NotificationServiceSupabase()),
+        ChangeNotifierProvider(create: (_) => MessagingService()),
         Provider(create: (_) => StorageServiceSupabase()),
       ],
       child: Consumer2<ThemeService, LocaleService>(

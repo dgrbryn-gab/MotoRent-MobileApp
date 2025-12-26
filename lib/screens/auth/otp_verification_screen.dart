@@ -8,11 +8,13 @@ import 'package:moto_rent_dumaguete/services/otp_service.dart';
 class OtpVerificationScreen extends StatefulWidget {
   final String email;
   final String userId;
+  final bool isMobileSignup;
 
   const OtpVerificationScreen({
     super.key,
     required this.email,
     required this.userId,
+    this.isMobileSignup = true,
   });
 
   @override
