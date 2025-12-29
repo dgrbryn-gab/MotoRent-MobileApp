@@ -36,7 +36,6 @@ class OtpService {
         'otp_code': otp,
         'is_used': false,
         'expires_at': expiresAt.toIso8601String(),
-        'user_id': userId,
       });
 
       // Cache for quick lookups
