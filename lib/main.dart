@@ -29,6 +29,11 @@ void main() async {
     // You might want to show an error screen instead
   }
 
+  // Initialize Theme Service to load saved preferences
+  final themeService = ThemeService();
+  await themeService.initialize();
+  print('✅ Theme service initialized');
+
   // Set status bar style - will be overridden by theme
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -36,11 +41,13 @@ void main() async {
     ),
   );
 
-  runApp(const MotoRentApp());
+  runApp(MotoRentApp(themeService: themeService));
 }
 
 class MotoRentApp extends StatefulWidget {
-  const MotoRentApp({super.key});
+  final ThemeService themeService;
+
+  const MotoRentApp({super.key, required this.themeService});
 
   @override
   State<MotoRentApp> createState() => _MotoRentAppState();
@@ -80,7 +87,7 @@ class _MotoRentAppState extends State<MotoRentApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider.value(value: widget.themeService),
         ChangeNotifierProvider(create: (_) => LocaleService()),
         ChangeNotifierProvider(create: (_) => AuthServiceSupabase()),
         ChangeNotifierProvider(create: (_) => ReservationServiceSupabase()),
