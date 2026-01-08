@@ -13,9 +13,32 @@ ALTER TABLE public.motorcycles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.penalties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.otp_codes ENABLE ROW LEVEL SECURITY;
 
 -- =============================================
--- 2. USERS TABLE POLICIES
+-- 2. OTP CODES TABLE POLICIES
+-- =============================================
+
+-- Allow unauthenticated users to insert OTP during signup
+CREATE POLICY "Allow inserting OTP during signup"
+ON public.otp_codes
+FOR INSERT
+WITH CHECK (true);
+
+-- Allow reading OTP records (needed during verification)
+CREATE POLICY "Allow reading OTP by email"
+ON public.otp_codes
+FOR SELECT
+USING (true);
+
+-- Allow updating OTP records (to mark as used after verification)
+CREATE POLICY "Allow updating OTP status"
+ON public.otp_codes
+FOR UPDATE
+USING (true);
+
+-- =============================================
+-- 3. USERS TABLE POLICIES
 -- =============================================
 
 -- Allow users to read their own profile

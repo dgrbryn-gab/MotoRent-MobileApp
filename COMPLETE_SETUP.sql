@@ -174,6 +174,20 @@ CREATE INDEX IF NOT EXISTS idx_notifications_read ON public.notifications(is_rea
 CREATE INDEX IF NOT EXISTS idx_notifications_type ON public.notifications(type);
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON public.notifications(created_at);
 
+-- OTP Codes Table (for email verification during signup)
+CREATE TABLE IF NOT EXISTS public.otp_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    otp_code TEXT NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_otp_codes_email ON public.otp_codes(email);
+CREATE INDEX IF NOT EXISTS idx_otp_codes_is_used ON public.otp_codes(is_used);
+CREATE INDEX IF NOT EXISTS idx_otp_codes_expires_at ON public.otp_codes(expires_at);
+
 -- =============================================
 -- STEP 2: CREATE TRIGGERS
 -- =============================================
@@ -289,10 +303,27 @@ ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.penalties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.otp_codes ENABLE ROW LEVEL SECURITY;
 
 -- =============================================
 -- STEP 6: CREATE RLS POLICIES
 -- =============================================
+
+-- OTP Codes Policies
+-- Allow unauthenticated users to insert OTP during signup
+CREATE POLICY "Allow inserting OTP during signup"
+ON public.otp_codes FOR INSERT
+WITH CHECK (true);
+
+-- Allow reading OTP records (needed during verification)
+CREATE POLICY "Allow reading OTP by email"
+ON public.otp_codes FOR SELECT
+USING (true);
+
+-- Allow updating OTP records (to mark as used after verification)
+CREATE POLICY "Allow updating OTP status"
+ON public.otp_codes FOR UPDATE
+USING (true);
 
 -- Users Policies
 CREATE POLICY "Users can view own profile"

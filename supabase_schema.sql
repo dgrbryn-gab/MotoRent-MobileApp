@@ -30,7 +30,24 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON public.users(username);
 CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
 
 -- =============================================
--- 2. MOTORCYCLES TABLE
+-- 2. OTP CODES TABLE (for email verification)
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.otp_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    otp_code TEXT NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for OTP lookups
+CREATE INDEX IF NOT EXISTS idx_otp_codes_email ON public.otp_codes(email);
+CREATE INDEX IF NOT EXISTS idx_otp_codes_is_used ON public.otp_codes(is_used);
+CREATE INDEX IF NOT EXISTS idx_otp_codes_expires_at ON public.otp_codes(expires_at);
+
+-- =============================================
+-- 3. MOTORCYCLES TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.motorcycles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -62,7 +79,7 @@ CREATE INDEX IF NOT EXISTS idx_motorcycles_available ON public.motorcycles(is_av
 CREATE INDEX IF NOT EXISTS idx_motorcycles_price ON public.motorcycles(price_per_day);
 
 -- =============================================
--- 3. BOOKINGS TABLE
+-- 4. BOOKINGS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.bookings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
