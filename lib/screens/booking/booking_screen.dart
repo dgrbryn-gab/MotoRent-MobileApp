@@ -354,14 +354,11 @@ class _BookingScreenState extends State<BookingScreen> {
         return;
       }
 
+      // Auto-set pickup time to 10 AM if not already set
       if (_pickupTime == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select pickup time'),
-            backgroundColor: AppTheme.errorColor,
-          ),
-        );
-        return;
+        setState(() {
+          _pickupTime = const TimeOfDay(hour: 10, minute: 0);
+        });
       }
 
       if (_dateOfBirth == null) {
@@ -1378,12 +1375,6 @@ class _BookingScreenState extends State<BookingScreen> {
           icon: Icons.calendar_today,
         ),
         const SizedBox(height: 16),
-        _buildTimeField(
-          label: 'Pickup Time *',
-          time: _pickupTime,
-          onTap: _showPickupTimeDropdown,
-        ),
-        const SizedBox(height: 16),
         _buildDateField(
           label: 'Return Date *',
           date: _returnDate,
@@ -2251,8 +2242,6 @@ class _BookingScreenState extends State<BookingScreen> {
             'Return Date',
             '${_returnDate!.day}/${_returnDate!.month}/${_returnDate!.year}',
           ),
-        if (_pickupTime != null)
-          _buildReviewItem('Pickup Time', _formatTimeOfDay(_pickupTime!)),
         _buildReviewItem(
           'Duration',
           '${_returnDate?.difference(_pickupDate ?? DateTime.now()).inDays ?? 0} days',

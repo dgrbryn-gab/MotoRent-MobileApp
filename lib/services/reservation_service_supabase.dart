@@ -104,6 +104,24 @@ class ReservationServiceSupabase extends ChangeNotifier {
     _setError(null);
 
     try {
+      // Validate pickup time is not after 5 PM (17:00)
+      if (pickupTime != null && pickupTime.isNotEmpty) {
+        try {
+          final timeParts = pickupTime.split(':');
+          final hour = int.parse(timeParts[0]);
+
+          if (hour >= 17) {
+            _setError(
+                'Motorcycles cannot be picked up after 5:00 PM. Please select an earlier time.');
+            _setLoading(false);
+            return false;
+          }
+        } catch (e) {
+          print('Warning: Could not parse pickup time: $pickupTime');
+          // Continue if time parsing fails, as it might be handled elsewhere
+        }
+      }
+
       final reservationData = {
         'user_id': userId,
         'motorcycle_id': motorcycleId,
